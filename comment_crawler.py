@@ -32,24 +32,41 @@ def get_comments_pgr(article_no, board='recommend'):
     data = urllib2.urlopen(url).read()
 
     soup = BeautifulSoup(data, 'html5lib')
-    comments = soup.find_all('div', {"class": "cmemo"})
+    c_codes = soup.find_all('div', {"class": "cmemo"})
+    comments = [c.text.strip() for c in c_codes]
 
     return comments
 
 
 def get_comments_ilbe(article_no):
-    url = 'http://www.ilbe.com/index.php?document_srl=%d&cpage=1' % article_no
-    data = urllib2.urlopen(url).read()
-    soup = BeautifulSoup(data, 'html5lib')
-    comments = soup.find_all('div', {"class": "replyContent"})
+
+    comments = []
+
+    for page in range(1, 20):
+        print('page %d' % page)
+
+        url = 'http://www.ilbe.com/index.php?document_srl=%d&cpage=%d' % (article_no, page)
+        data = urllib2.urlopen(url).read()
+        soup = BeautifulSoup(data, 'html5lib')
+        c_codes = soup.find_all('div', {"class": "replyContent"})
+
+        if len(comments) > 0 and comments[-1] == c_codes[-1].text.strip():
+            print('same page. break!')
+            break
+
+        c_page = [c.text.strip() for c in c_codes]
+
+        comments += c_page
 
     return comments
 
 
 if __name__ == "__main__":
     comments = get_comments_ilbe(9821475171)
+    # comments = get_comments_pgr(2823)
     print(len(comments))
 
-    # print(comments[8])
+    # print(comments)
+
     for c in comments:
-        print('<%s>' % c.text.strip())
+        print('<%s>' % c)
