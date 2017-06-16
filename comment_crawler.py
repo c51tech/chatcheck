@@ -46,7 +46,6 @@ def get_comments_ilbe(article_no, board=None):
     comments = []
 
     for page in range(1, 20):
-        # print('page %d' % page)
 
         url = 'http://www.ilbe.com/index.php?document_srl=%s&cpage=%d' % (str(article_no), page)
         data = urllib2.urlopen(url).read()
@@ -54,11 +53,9 @@ def get_comments_ilbe(article_no, board=None):
         c_codes = soup.find_all('div', {"class": "replyContent"})
 
         if len(comments) > 0 and comments[-1] == c_codes[-1].text.strip():
-            # print('same page. break!')
             break
 
         c_page = [c.text.strip() for c in c_codes]
-
         comments += c_page
 
     return comments
@@ -91,7 +88,6 @@ def crawl_comments(site='pgr', board='recommend', start_page=1, end_page=100, fi
             if last_article_no == article_no_list[-1]:
                 break
 
-            # comments = []
             for a_no in article_no_list:
                 comments_article = fn_comments(a_no, board)
                 print('  article %s (count = %d)' % (a_no, len(comments_article)))
@@ -108,16 +104,12 @@ def crawl_comments(site='pgr', board='recommend', start_page=1, end_page=100, fi
 
 if __name__ == "__main__":
 
-    crawl_comments(site='pgr', board='recommend', end_page=10, time_sleep=5)
-    # crawl_comments(site='ilbe', board='ilbe', end_page=2, time_sleep=5)
+    step = -10
+    for end_page in range(70, 0, step):
+        crawl_comments(site='pgr', board='recommend', start_page=end_page + step + 1, end_page=end_page,
+                       time_sleep=5, file_dir='/media/kikim/Data/data/chatcheck')
 
-    # comments = get_comments_ilbe('9821475171')
-    # # comments = get_comments_pgr(2823)
-    # print(len(comments))
-    #
-    # # print(comments)
-    #
-    # for c in comments:
-    #     print('<%s>' % c)
-
-
+    step = -2
+    for end_page in range(1000, 1000 + step * 10, step):
+        crawl_comments(site='ilbe', board='ilbe', start_page=end_page + step + 1, end_page=end_page,
+                       time_sleep=3, file_dir='/media/kikim/Data/data/chatcheck')
