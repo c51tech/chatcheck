@@ -3,7 +3,7 @@
 import random
 import re
 import time
-import urllib2
+import urllib.request as request
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -22,7 +22,7 @@ def get_article_no_list_ilbe(board='ilbe', page=1):
 
 def get_article_no_list(board, page, board_url, pattern):
     url = board_url % (board, page)
-    data = urllib2.urlopen(url).read()
+    data = request.urlopen(url).read().decode('utf-8')
 
     c = re.compile(pattern)
     m = c.findall(data)
@@ -32,8 +32,8 @@ def get_article_no_list(board, page, board_url, pattern):
 
 def get_comments_pgr(article_no, board='recommend'):
     url = 'http://www.pgr21.com/pb/pb.php?id=%s&no=%s' % (board, str(article_no))
-    data = urllib2.urlopen(url).read()
 
+    data = request.urlopen(url).read().decode('utf-8', 'ignore')
     soup = BeautifulSoup(data, 'html5lib')
     c_codes = soup.find_all('div', {"class": "cmemo"})
     comments = [c.text.strip() for c in c_codes]
@@ -46,9 +46,9 @@ def get_comments_ilbe(article_no, board=None):
     comments = []
 
     for page in range(1, 20):
-
         url = 'http://www.ilbe.com/index.php?document_srl=%s&cpage=%d' % (str(article_no), page)
-        data = urllib2.urlopen(url).read()
+
+        data = request.urlopen(url).read().decode('utf-8', 'ignore')
         soup = BeautifulSoup(data, 'html5lib')
         c_codes = soup.find_all('div', {"class": "replyContent"})
 
@@ -93,7 +93,7 @@ def crawl_comments(site='pgr', board='recommend', start_page=1, end_page=100, fi
                 print('  article %s (count = %d)' % (a_no, len(comments_article)))
 
                 for c in comments_article:
-                    data_file.write(c.encode('utf-8'))
+                    data_file.write(c)
                     data_file.write('\n&&&&&&&&&&&&&&&\n')
 
                 comment_count += len(comments_article)
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     step = -10
     for end_page in range(70, 0, step):
         crawl_comments(site='pgr', board='recommend', start_page=end_page + step + 1, end_page=end_page,
-                       time_sleep=5, file_dir='/media/kikim/Data/data/chatcheck')
+                       time_sleep=5, file_dir='.')
 
     step = -2
     for end_page in range(1000, 1000 + step * 10, step):
