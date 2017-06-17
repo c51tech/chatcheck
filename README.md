@@ -5,7 +5,7 @@ Check your instant message contains any problems with RNN, especially wrong-chat
 # 1. Install
 
 ```bash
-$ conda create -n tf2 python=2 beautifulsoup4
-$ source activate tf2
-(tf2)$ pip install hangul-utils
+$ conda create -n tf3 python=3 beautifulsoup4
+$ source activate tf3
+(tf3)$ pip install hangul-utils
 ```
