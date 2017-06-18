@@ -15,6 +15,6 @@ $ source activate tf3
 [tfBinaryURL](https://www.tensorflow.org/install/install_linux#the_url_of_the_tensorflow_python_package)
 
 ```bash
-pip install --ignore-installed --upgrade tfBinaryURL
+(tf3)$ pip install --ignore-installed --upgrade tfBinaryURL
 (tf3)$ pip install keras
 ```
