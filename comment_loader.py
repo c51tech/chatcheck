@@ -17,8 +17,8 @@ def load_comments(count=1000, dir_path='.', file_filter=r'.+\.txt', count_per_fi
 
     num_iter = math.ceil(count / count_per_file)
 
-    comments = [None] * count
-
+    # comments = [None] * count
+    comments = np.empty([count], dtype=object)
     for i in range(num_iter):
         filename = random.choice(file_names)
 
@@ -31,7 +31,8 @@ def load(file_path, count=100):
     with open(file_path, 'r') as data_file:
         lines = data_file.readlines()
 
-        comments = [None] * 10000
+        # comments = [None] * 10000
+        comments = np.empty([10000], dtype=object)
         count_comments = 0
         comment = ''
         for l in lines:
@@ -41,7 +42,8 @@ def load(file_path, count=100):
                 if len(comment) > 0:
 
                     if len(comments) == count_comments:
-                        comments += [None] * 1000
+                        # comments += [None] * 1000
+                        comments = np.append(comments, np.empty([1000], dtype=object))
 
                     comments[count_comments] = comment
                     count_comments += 1
@@ -53,7 +55,7 @@ def load(file_path, count=100):
     comments = comments[:count_comments]
     comments = random.choices(comments, k=count)
 
-    return comments
+    return np.array(comments)
 
 
 def disassemble(ch):
@@ -104,7 +106,8 @@ std_char_list = '!\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\
 
 
 def convert_comments_to_charidx(comments, char2idx):
-    charidx_list = [None] * len(comments)
+    charidx_list = np.empty(comments.shape, dtype=object)
+
     for i, c in enumerate(comments):
         charidx_list[i] = convert_char_to_idx(disassemble_str(c), char2idx)
 
@@ -140,18 +143,21 @@ if __name__ == "__main__":
     print(idx_list)
 
     comments = load('comments_pgr_recommend_1-2_20170617_185152.txt')
+    print(comments.shape)
+    print(comments[0])
 
     comments_charidx = convert_comments_to_charidx(comments[:2], char2idx)
 
+    print(comments_charidx.shape)
     print(comments[:2])
     print(comments_charidx)
 
     print(len(std_char_list))
 
-    data = convert_charidx_to_onehot(comments_charidx)
-
-    print(data[0][0])
-    print(data[0].shape)
-
-    print(data[1][0])
-    print(data[1].shape)
+    # data = convert_charidx_to_onehot(comments_charidx)
+    #
+    # print(data[0][0])
+    # print(data[0].shape)
+    #
+    # print(data[1][0])
+    # print(data[1].shape)
