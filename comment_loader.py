@@ -7,7 +7,7 @@ import re
 import numpy as np
 
 
-def load_comments(count=1000, dir_path='.', file_filter=r'.+\.txt', count_per_file=100):
+def load_comments(count=1024, dir_path='.', file_filter=r'.+\.txt', count_per_file=128):
     file_names = os.listdir(dir_path)
 
     file_names = [f for f in file_names if re.match(file_filter, f)]
@@ -118,8 +118,7 @@ def convert_comments_to_charidx(comments, char2idx):
 
 def convert_charidx_to_onehot(comments_charidx, num_char=146):
 
-    n = len(comments_charidx)
-    data = [None] * n
+    data = np.empty(comments_charidx.shape, dtype=object)
 
     for i, c in enumerate(comments_charidx):
         comment_mat = np.zeros([len(c), num_char])
