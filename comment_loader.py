@@ -65,12 +65,14 @@ def disassemble(ch):
 
     n_chr = ord(ch) - 44032    # ord('가')
 
-    if 0 <= n_chr <= 55203:     # ord('힣')
+    if 0 <= n_chr <= 11171:     # ord('힣') - ord('가')
         jong = n_chr % 28
         jung = ((n_chr - jong) // 28) % 21
         cho = (((n_chr - jong) // 28) - jung) // 21
 
-        return cho_arr[cho] + jung_arr[jung] + jong_arr[jong]
+        jaso = cho_arr[cho] + jung_arr[jung] + jong_arr[jong]
+
+        return jaso
 
     return ch
 
