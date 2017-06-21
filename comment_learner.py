@@ -1,8 +1,10 @@
 import numpy as np
+import datetime
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Dropout
 from keras.layers import LSTM
+from keras.models import model_from_json
 from keras.callbacks import ModelCheckpoint
 from keras.utils import np_utils
 from keras.preprocessing import sequence
@@ -83,6 +85,27 @@ def learn():
     model.fit(x_train, y_train, epochs=10, batch_size=16)
     scores = model.evaluate(x_test, y_test)
     print('Accuracy %f' % scores[1])
+
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    model_json = model.to_json()
+    with open('model_%s.json' % timestamp, 'w') as json_file:
+        json_file.write(model_json)
+
+    model.save_weights('model_%s.h5' % timestamp)
+
+
+def play(model_file_path, weight_file_path, x_test, y_test):
+    json_file = open(model_file_path, 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json)
+
+    loaded_model.load_weights(weight_file_path)
+
+    loaded_model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+
+    score = loaded_model.evaluate(x_test, y_test)
+    print('%s: %.2f%%' % (loaded_model.metrics_names[1], score[1] * 100))
 
 
 if __name__ == "__main__":
