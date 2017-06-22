@@ -7,7 +7,7 @@ Check your instant message contains any problems with RNN, especially wrong-chat
 ## 1.1 가상환경 만들기 (anaconda)
 
 ```bash
-$ conda create -n tf3 python=3 beautifulsoup4 html5lib numpy
+$ conda create -n tf3 python=3 beautifulsoup4 html5lib numpy h5py
 $ source activate tf3
 (tf3)$ 
 ```
