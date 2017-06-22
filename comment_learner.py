@@ -22,67 +22,45 @@ def load(count, dir_path='.'):
     comments_pgr = comment_loader.load_comments(count=count//2, dir_path=dir_path, file_filter=r'.+pgr.+\.txt')
     comments_ilbe = comment_loader.load_comments(count=count//2, dir_path=dir_path, file_filter=r'.+ilbe.+\.txt')
 
-    x_pgr = comment_loader.convert_comments_to_charidx(comments_pgr, char2idx)
-    x_ilbe = comment_loader.convert_comments_to_charidx(comments_ilbe, char2idx)
+    comments = np.concatenate((comments_pgr, comments_ilbe), axis=0)
 
-    x = np.concatenate((x_pgr, x_ilbe), axis=0)
-
-    y_pgr = np.ones(x_pgr.shape)
-    y_ilbe = np.zeros(x_ilbe.shape)
+    y_pgr = np.ones(comments_pgr.shape)
+    y_ilbe = np.zeros(comments_ilbe.shape)
 
     y = np.concatenate((y_pgr, y_ilbe))
 
-    idx_suffle = np.random.permutation(count)
+    idx_shuffle = np.random.permutation(count)
 
-    x = x[idx_suffle]
-    y = y[idx_suffle]
+    comments = comments[idx_shuffle]
+    y = y[idx_shuffle]
 
-    # print(x.shape)
-    # print(y.shape)
-    #
-    # print(x[:5])
-    # print(y[:5])
-
-    comments = np.concatenate((comments_pgr, comments_ilbe), axis=0)
-    comments = comments[idx_suffle]
-
-    # print(comments[:5])
-
-    return x, y, comments
+    return comments, y
 
 
-def learn(train_dir, test_dir):
-    x_train, y_train, _ = load(1024, dir_path=train_dir)
-    x_test, y_test, _ = load(1024, dir_path='/media/kikim/Data/data/chatcheck')
+def preprocess_comments(comments, max_review_length=100):
+    x = comment_loader.convert_comments_to_charidx(comments, char2idx)
+    x = comment_loader.convert_charidx_to_onehot(x)
+    x = sequence.pad_sequences(x, maxlen=max_review_length)
 
-    x_train = comment_loader.convert_charidx_to_onehot(x_train)
-    x_test = comment_loader.convert_charidx_to_onehot(x_test)
-    # print(x_train.shape)
-    # print(y_train.shape)
-    #
-    # print(x_train[:5])
-    # print(y_train[:5])
+    return x
 
-    max_review_length = 100
 
-    x_train = sequence.pad_sequences(x_train, maxlen=max_review_length)
-    x_test = sequence.pad_sequences(x_test, maxlen=max_review_length)
+def learn(train_dir='.', test_dir='.', count=1024, test_count=1024, epoch=10):
+    comments_train, y_train = load(count, dir_path=train_dir)
+    comments_test, y_test = load(test_count, dir_path=test_dir)
 
-    # print(x_train.shape)
-    # print(x_test.shape)
+    x_train = preprocess_comments(comments_train)
+    x_test = preprocess_comments(comments_test)
 
     y_train = np_utils.to_categorical(y_train)
     y_test = np_utils.to_categorical(y_test)
-
-    # print(y_train.shape)
-    # print(y_train[:3, :])
 
     model = Sequential()
     model.add(LSTM(128, input_shape=(x_train.shape[1], x_train.shape[2])))
     model.add(Dense(y_train.shape[1], activation='softmax'))
 
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    model.fit(x_train, y_train, epochs=10, batch_size=16)
+    model.fit(x_train, y_train, epochs=epoch, batch_size=16)
     scores = model.evaluate(x_test, y_test)
     print('Accuracy %f' % scores[1])
 
@@ -125,6 +103,28 @@ def test(model_file_path, weight_file_path, x_test, y_test):
     return wrong
 
 
+def play(model_file_path, weight_file_path):
+    json_file = open(model_file_path, 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json)
+
+    loaded_model.load_weights(weight_file_path)
+
+    loaded_model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+
+    while True:
+        comment = input('메시지를 입력하세요.\n')
+        if comment == 'quit':
+            break
+
+        x = preprocess_comments(np.array([comment]))
+
+        prediction = loaded_model.predict(x, verbose=0)
+
+        print('%.2f%%' % (prediction[0][1] * 100))
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print('python comment_learner learn [options]')
@@ -132,7 +132,8 @@ if __name__ == "__main__":
         exit()
 
     if sys.argv[1] == 'learn':
-        learn('/media/kikim/Data/data/chatcheck', '/media/kikim/Data/data/chatcheck')
+        # learn('/media/kikim/Data/data/chatcheck', '/media/kikim/Data/data/chatcheck')
+        learn(epoch=5)
 
     elif sys.argv[1] == 'test':
         x_test, y_test, comments = load(1024, dir_path='/media/kikim/Data/data/chatcheck')
@@ -145,3 +146,5 @@ if __name__ == "__main__":
         is_wrong = test('./model_20170622_095306.json', 'model_20170622_095306.h5', x_test, y_test)
 
         print(comments[is_wrong])
+    elif sys.argv[1] == 'play':
+        play('./model_20170622_143033.json', './model_20170622_143033.h5')
