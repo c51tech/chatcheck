@@ -131,6 +131,27 @@ def convert_charidx_to_onehot(comments_charidx, num_char=146):
     return data
 
 
+def restore_char(x, char_list):
+    # char_idx = np.where(x, axis=2)
+
+    comments_char = np.empty([x.shape[0]], dtype=object)
+    for i in range(x.shape[0]):
+        c = [None] * x.shape[1]
+        for j in range(x.shape[1]):
+            idx = np.where(x[i, j, :])
+            if len(idx) == 0 or len(idx[0]) == 0:
+                continue
+
+            if idx[0] < len(char_list):
+                c[j] = char_list[idx[0][0]]
+            else:
+                c[j] = chr(22231)
+
+        comments_char[i] = list(filter(None, c))
+
+    return comments_char
+
+
 if __name__ == "__main__":
     # load('comments_pgr_recommend_1-2_20170617_185152.txt')
 

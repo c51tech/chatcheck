@@ -1,5 +1,6 @@
 import numpy as np
 import datetime
+import sys
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Dropout
@@ -50,10 +51,9 @@ def load(count, dir_path='.'):
     return x, y, comments
 
 
-def learn():
-    # x_train, y_train, _ = load(1024, dir_path='/media/kikim/Data/data/chatcheck')
-    x_train, y_train, _ = load(1024, dir_path='.')
-    x_test, y_test, _ = load(1024, dir_path='.')
+def learn(train_dir, test_dir):
+    x_train, y_train, _ = load(1024, dir_path=train_dir)
+    x_test, y_test, _ = load(1024, dir_path='/media/kikim/Data/data/chatcheck')
 
     x_train = comment_loader.convert_charidx_to_onehot(x_train)
     x_test = comment_loader.convert_charidx_to_onehot(x_test)
@@ -63,7 +63,7 @@ def learn():
     # print(x_train[:5])
     # print(y_train[:5])
 
-    max_review_length = 1000
+    max_review_length = 100
 
     x_train = sequence.pad_sequences(x_train, maxlen=max_review_length)
     x_test = sequence.pad_sequences(x_test, maxlen=max_review_length)
@@ -78,7 +78,7 @@ def learn():
     # print(y_train[:3, :])
 
     model = Sequential()
-    model.add(LSTM(16, input_shape=(x_train.shape[1], x_train.shape[2])))
+    model.add(LSTM(128, input_shape=(x_train.shape[1], x_train.shape[2])))
     model.add(Dense(y_train.shape[1], activation='softmax'))
 
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -94,7 +94,7 @@ def learn():
     model.save_weights('model_%s.h5' % timestamp)
 
 
-def play(model_file_path, weight_file_path, x_test, y_test):
+def test(model_file_path, weight_file_path, x_test, y_test):
     json_file = open(model_file_path, 'r')
     loaded_model_json = json_file.read()
     json_file.close()
@@ -105,8 +105,43 @@ def play(model_file_path, weight_file_path, x_test, y_test):
     loaded_model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
 
     score = loaded_model.evaluate(x_test, y_test)
-    print('%s: %.2f%%' % (loaded_model.metrics_names[1], score[1] * 100))
+    print('\n%s: %.2f%%' % (loaded_model.metrics_names[1], score[1] * 100))
+
+    prediction = loaded_model.predict(x_test, verbose=1)
+    idx = np.argmax(prediction, axis=1)
+    diff = np.sum(np.abs(prediction - y_test), axis=1)
+    wrong = diff >= 1
+
+    x_wrong = x_test[wrong]
+    comments_wrong = comment_loader.restore_char(x_wrong, comment_loader.std_char_list)
+
+    print(prediction[:5, :])
+    print(y_test[:5, :])
+    print(diff[:5])
+    print(wrong[:5])
+    print(np.mean(wrong))
+    print(comments_wrong[:5])
+
+    return wrong
 
 
 if __name__ == "__main__":
-    learn()
+    if len(sys.argv) < 2:
+        print('python comment_learner learn [options]')
+        print('python comment_learner test [options]')
+        exit()
+
+    if sys.argv[1] == 'learn':
+        learn('/media/kikim/Data/data/chatcheck', '/media/kikim/Data/data/chatcheck')
+
+    elif sys.argv[1] == 'test':
+        x_test, y_test, comments = load(1024, dir_path='/media/kikim/Data/data/chatcheck')
+
+        x_test = comment_loader.convert_charidx_to_onehot(x_test)
+
+        max_review_length = 100
+        x_test = sequence.pad_sequences(x_test, maxlen=max_review_length)
+        y_test = np_utils.to_categorical(y_test)
+        is_wrong = test('./model_20170622_095306.json', 'model_20170622_095306.h5', x_test, y_test)
+
+        print(comments[is_wrong])
