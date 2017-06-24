@@ -7,12 +7,14 @@ from keras.layers import Dropout
 from keras.layers import LSTM
 from keras.models import model_from_json
 from keras.callbacks import ModelCheckpoint
+from keras.optimizers import Adam
 from keras.utils import np_utils
 from keras.preprocessing import sequence
+from keras import backend as K
 
 import comment_loader
 
-np.random.seed(7)
+# np.random.seed(7)
 
 char2idx = comment_loader.get_char2idx(comment_loader.std_char_list)
 
@@ -45,31 +47,45 @@ def preprocess_comments(comments, max_review_length=100):
     return x
 
 
-def learn(train_dir='.', test_dir='.', count=1024, test_count=1024, epoch=10):
-    comments_train, y_train = load(count, dir_path=train_dir)
-    comments_test, y_test = load(test_count, dir_path=test_dir)
-
-    x_train = preprocess_comments(comments_train)
-    x_test = preprocess_comments(comments_test)
-
-    y_train = np_utils.to_categorical(y_train)
-    y_test = np_utils.to_categorical(y_test)
+def learn(train_dir='.', test_dir='.', count=1024, test_count=1024, epochs=10, max_review_length=100):
 
     model = Sequential()
-    model.add(LSTM(128, input_shape=(x_train.shape[1], x_train.shape[2])))
-    model.add(Dense(y_train.shape[1], activation='softmax'))
+    model.add(LSTM(128, input_shape=(max_review_length, len(char2idx) + 1)))
+    model.add(Dense(2, activation='softmax'))
 
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    model.fit(x_train, y_train, epochs=epoch, batch_size=16)
-    scores = model.evaluate(x_test, y_test)
-    print('Accuracy %f' % scores[1])
+    learning_rate = 0.001
+    adam = Adam(lr=learning_rate)
+    model.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accuracy'])
 
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+
     model_json = model.to_json()
     with open('model_%s.json' % timestamp, 'w') as json_file:
         json_file.write(model_json)
 
-    model.save_weights('model_%s.h5' % timestamp)
+    weight_file = './weights-%s.h5' % timestamp
+    checkpoint = ModelCheckpoint(weight_file, monitor='loss', verbose=1, save_best_only=True, mode='min')
+    callback_list = [checkpoint]
+
+    for i in range(200):
+        print('################# Iteration: %d' % i)
+
+        comments_train, y_train = load(count, dir_path=train_dir)
+        comments_test, y_test = load(test_count, dir_path=test_dir)
+
+        x_train = preprocess_comments(comments_train, max_review_length)
+        x_test = preprocess_comments(comments_test, max_review_length)
+
+        y_train = np_utils.to_categorical(y_train)
+        y_test = np_utils.to_categorical(y_test)
+
+        model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=16, callbacks=callback_list, verbose=2)
+
+        # model.save_weights('model_%s.h5' % timestamp)
+        K.set_value(adam.lr, learning_rate / (epochs * (i + 1)))
+
+    scores = model.evaluate(x_test, y_test, verbose=0)
+    print('Accuracy %f' % scores[1])
 
 
 def test(model_file_path, weight_file_path, x_test, y_test):
@@ -112,6 +128,7 @@ def play(model_file_path, weight_file_path):
     loaded_model.load_weights(weight_file_path)
 
     loaded_model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+    loaded_model.summary()
 
     while True:
         comment = input('메시지를 입력하세요.\n')
@@ -132,8 +149,7 @@ if __name__ == "__main__":
         exit()
 
     if sys.argv[1] == 'learn':
-        # learn('/media/kikim/Data/data/chatcheck', '/media/kikim/Data/data/chatcheck')
-        learn(epoch=5)
+        learn(train_dir='/media/kikim/Data/data/chatcheck', test_dir='/media/kikim/Data/data/chatcheck', count=1024, test_count=1024, epochs=5)
 
     elif sys.argv[1] == 'test':
         x_test, y_test, comments = load(1024, dir_path='/media/kikim/Data/data/chatcheck')
@@ -143,8 +159,8 @@ if __name__ == "__main__":
         max_review_length = 100
         x_test = sequence.pad_sequences(x_test, maxlen=max_review_length)
         y_test = np_utils.to_categorical(y_test)
-        is_wrong = test('./model_20170622_095306.json', 'model_20170622_095306.h5', x_test, y_test)
+        is_wrong = test('./model_20170622_120942.json', 'model_20170622_120942.h5', x_test, y_test)
 
         print(comments[is_wrong])
     elif sys.argv[1] == 'play':
-        play('./model_20170622_143033.json', './model_20170622_143033.h5')
+        play('./model_20170622_120942.json', './model_20170622_120942.h5')
