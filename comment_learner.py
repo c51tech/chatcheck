@@ -21,8 +21,8 @@ char2idx = comment_loader.get_char2idx(comment_loader.std_char_list)
 
 def load(count, dir_path='.'):
 
-    comments_pgr = comment_loader.load_comments(count=count//2, dir_path=dir_path, file_filter=r'.+pgr.+\.txt')
-    comments_ilbe = comment_loader.load_comments(count=count//2, dir_path=dir_path, file_filter=r'.+ilbe.+\.txt')
+    comments_pgr = comment_loader.load_comments(count=count//2, dir_path=dir_path, file_filter=r'.+pgr.+\.txt', count_per_file=count//16)
+    comments_ilbe = comment_loader.load_comments(count=count//2, dir_path=dir_path, file_filter=r'.+ilbe.+\.txt', count_per_file=count//16)
 
     comments = np.concatenate((comments_pgr, comments_ilbe), axis=0)
 
@@ -51,11 +51,11 @@ def learn(train_dir='.', test_dir='.', count=1024, test_count=1024, epochs=10, m
 
     model = Sequential()
     model.add(LSTM(128, input_shape=(max_review_length, len(char2idx) + 1)))
-    model.add(Dense(2, activation='softmax'))
+    model.add(Dense(1, activation='linear'))
 
     learning_rate = 0.001
     adam = Adam(lr=learning_rate)
-    model.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accuracy'])
+    model.compile(loss='mean_squared_error', optimizer=adam, metrics=['mae'])
 
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
@@ -76,8 +76,8 @@ def learn(train_dir='.', test_dir='.', count=1024, test_count=1024, epochs=10, m
         x_train = preprocess_comments(comments_train, max_review_length)
         x_test = preprocess_comments(comments_test, max_review_length)
 
-        y_train = np_utils.to_categorical(y_train)
-        y_test = np_utils.to_categorical(y_test)
+        # y_train = np_utils.to_categorical(y_train)
+        # y_test = np_utils.to_categorical(y_test)
 
         model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=epochs, batch_size=16, callbacks=callback_list, verbose=2)
 
@@ -96,7 +96,7 @@ def test(model_file_path, weight_file_path, x_test, y_test):
 
     loaded_model.load_weights(weight_file_path)
 
-    loaded_model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+    loaded_model.compile(loss='mean_squared_error', optimizer='rmsprop', metrics=['mae'])
 
     score = loaded_model.evaluate(x_test, y_test)
     print('\n%s: %.2f%%' % (loaded_model.metrics_names[1], score[1] * 100))
@@ -127,7 +127,7 @@ def play(model_file_path, weight_file_path):
 
     loaded_model.load_weights(weight_file_path)
 
-    loaded_model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+    loaded_model.compile(loss='mean_squared_error', optimizer='rmsprop', metrics=['mae'])
     loaded_model.summary()
 
     while True:
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         exit()
 
     if sys.argv[1] == 'learn':
-        learn(train_dir='/media/kikim/Data/data/chatcheck', test_dir='/media/kikim/Data/data/chatcheck', count=1024, test_count=1024, epochs=5)
+        learn(train_dir='/media/kikim/Data/data/chatcheck', test_dir='/media/kikim/Data/data/chatcheck', count=1024, test_count=128, epochs=5, max_review_length=128)
 
     elif sys.argv[1] == 'test':
         x_test, y_test, comments = load(1024, dir_path='/media/kikim/Data/data/chatcheck')
