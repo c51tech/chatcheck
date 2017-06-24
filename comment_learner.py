@@ -63,7 +63,7 @@ def learn(train_dir='.', test_dir='.', count=1024, test_count=1024, epochs=10, m
     with open('model_%s.json' % timestamp, 'w') as json_file:
         json_file.write(model_json)
 
-    weight_file = './weights-%s.h5' % timestamp
+    weight_file = './weights_%s.h5' % timestamp
     checkpoint = ModelCheckpoint(weight_file, monitor='loss', verbose=1, save_best_only=True, mode='min')
     callback_list = [checkpoint]
 
@@ -88,7 +88,7 @@ def learn(train_dir='.', test_dir='.', count=1024, test_count=1024, epochs=10, m
     print('Accuracy %f' % scores[1])
 
 
-def test(model_file_path, weight_file_path, x_test, y_test):
+def test(model_file_path, weight_file_path, x_test, y_test, threshold=0.5):
     json_file = open(model_file_path, 'r')
     loaded_model_json = json_file.read()
     json_file.close()
@@ -96,27 +96,21 @@ def test(model_file_path, weight_file_path, x_test, y_test):
 
     loaded_model.load_weights(weight_file_path)
 
+    loaded_model.summary()
+
     loaded_model.compile(loss='mean_squared_error', optimizer='rmsprop', metrics=['mae'])
 
-    score = loaded_model.evaluate(x_test, y_test)
-    print('\n%s: %.2f%%' % (loaded_model.metrics_names[1], score[1] * 100))
+    # score = loaded_model.evaluate(x_test, y_test)
+    # print('\n%s: %.2f%%' % (loaded_model.metrics_names[1], score[1] * 100))
 
     prediction = loaded_model.predict(x_test, verbose=1)
-    idx = np.argmax(prediction, axis=1)
-    diff = np.sum(np.abs(prediction - y_test), axis=1)
-    wrong = diff >= 1
-
-    x_wrong = x_test[wrong]
-    comments_wrong = comment_loader.restore_char(x_wrong, comment_loader.std_char_list)
-
+    print(prediction.shape)
     print(prediction[:5, :])
-    print(y_test[:5, :])
-    print(diff[:5])
-    print(wrong[:5])
-    print(np.mean(wrong))
-    print(comments_wrong[:5])
-
-    return wrong
+    print(prediction[0, 0])
+    diff = np.sum(np.abs(prediction - y_test.reshape(prediction.shape)), axis=1)
+    wrong = diff >= threshold
+    print(wrong.shape)
+    return wrong, prediction
 
 
 def play(model_file_path, weight_file_path):
@@ -139,7 +133,7 @@ def play(model_file_path, weight_file_path):
 
         prediction = loaded_model.predict(x, verbose=0)
 
-        print('%.2f%%' % (prediction[0][1] * 100))
+        print('%.2f%%' % (prediction[0][0] * 100))
 
 
 if __name__ == "__main__":
@@ -149,18 +143,21 @@ if __name__ == "__main__":
         exit()
 
     if sys.argv[1] == 'learn':
-        learn(train_dir='/media/kikim/Data/data/chatcheck', test_dir='/media/kikim/Data/data/chatcheck', count=1024, test_count=128, epochs=5, max_review_length=128)
+        learn(train_dir='/media/kikim/Data/data/chatcheck', test_dir='/media/kikim/Data/data/chatcheck',
+              count=1024, test_count=128, epochs=5, max_review_length=128)
 
     elif sys.argv[1] == 'test':
-        x_test, y_test, comments = load(1024, dir_path='/media/kikim/Data/data/chatcheck')
+        count_test = 1024
+        max_review_length = 128
+        comments, y_test,  = load(count=count_test, dir_path='/media/kikim/Data/data/chatcheck/test')
+        x_test = preprocess_comments(comments, max_review_length=max_review_length)
 
-        x_test = comment_loader.convert_charidx_to_onehot(x_test)
+        is_wrong, pred = test('./model_20170624_193321.json', 'weights-20170624_193321.h5', x_test, y_test, threshold=0.5)
 
-        max_review_length = 100
-        x_test = sequence.pad_sequences(x_test, maxlen=max_review_length)
-        y_test = np_utils.to_categorical(y_test)
-        is_wrong = test('./model_20170622_120942.json', 'model_20170622_120942.h5', x_test, y_test)
+        print('Accuracy: %.2f%%' % (100 - np.sum(is_wrong) / count_test * 100))
+        for i in enumerate(is_wrong):
+            if is_wrong[i]:
+                print('%f %f %s' % (y_test[i][0], pred[i][0], comments[i][0]))
 
-        print(comments[is_wrong])
     elif sys.argv[1] == 'play':
-        play('./model_20170622_120942.json', './model_20170622_120942.h5')
+        play('./model_20170624_193321.json', './weights-20170624_193321.h5')
