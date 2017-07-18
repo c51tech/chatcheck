@@ -101,3 +101,8 @@ ENV/
 .mypy_cache/
 
 .idea/
+
+model_*.json
+model_*.h5
+weights_*.h5
+comments_*.txt
