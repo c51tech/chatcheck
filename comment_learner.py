@@ -172,7 +172,7 @@ def play(model_file_path, weight_file_path):
 
         prediction = loaded_model.predict(x, verbose=0)
 
-        print('%.2f%%' % (prediction[0][0] * 100))
+        print('%.2f%%' % (max(0, min(1, prediction[0][0])) * 100))
 
 
 if __name__ == "__main__":
@@ -200,8 +200,8 @@ if __name__ == "__main__":
 
     elif sys.argv[1] == 'play':
         # play('./model_20170625_132026.json', './weights_20170625_132026.h5')
-        # play('./model_20170625_212948.json', './weights_20170625_212948.h5')
-        play('./model_20170626_005027.json', './weights_20170626_005027.h5')
+        play('./model_20170625_212948.json', './weights_20170625_212948.h5')
+        # play('./model_20170626_005027.json', './weights_20170626_005027.h5')
 
     elif sys.argv[1] == 'transfer1':
         model = load_model('./model_20170625_132026.json', './weights_20170625_132026.h5')

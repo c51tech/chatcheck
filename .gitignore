@@ -102,6 +102,8 @@ ENV/
 
 .idea/
 
-*.json
-*.h5
+model_*.json
+model_*.h5
+weights_*.h5
+comments_*.txt
 /chromedriver
