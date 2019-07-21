@@ -183,7 +183,7 @@ if __name__ == "__main__":
 
     if sys.argv[1] == 'learn':
         learn(train_dir='/media/kikim/Data/data/chatcheck', test_dir='/media/kikim/Data/data/chatcheck',
-              count=1024, test_count=128, epochs=5, max_review_length=128)
+              count=1024, test_count=128, max_iter=1000, epochs=5, max_review_length=256)
 
     elif sys.argv[1] == 'test':
         count_test = 1024

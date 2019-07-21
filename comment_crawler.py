@@ -20,9 +20,26 @@ def get_article_no_list_ilbe(board='ilbe', page=1):
                                pattern='http://www\.ilbe\.com/(\d+)')
 
 
-def get_article_no_list(board, page, board_url, pattern):
-    url = board_url % (board, page)
-    data = request.urlopen(url).read().decode('utf-8')
+def get_article_no_list(page, board_url, pattern, board=None, encoding='utf-8'):
+    if board is None:
+        url = board_url % board
+    else:
+        url = board_url % (board, page)
+
+    attempts = 0
+    while attempts < 3:
+        try:
+            data = request.urlopen(url).read().decode(encoding, 'ignore')
+            break
+        except Exception as e:
+            print(e)
+            print(url)
+            attempts += 1
+            time.sleep(5 * attempts)
+
+    if attempts >= 3:
+        print('Too many connection failures!')
+        return []
 
     c = re.compile(pattern)
     m = c.findall(data)
@@ -104,12 +121,14 @@ def crawl_comments(site='pgr', board='recommend', start_page=1, end_page=100, fi
 
 if __name__ == "__main__":
 
-    step = -10
-    for end_page in range(70, 0, step):
-        crawl_comments(site='pgr', board='recommend', start_page=end_page + step + 1, end_page=end_page,
-                       time_sleep=5, file_dir='.')
+    # step = -10
+    # for end_page in range(70, 0, step):
+    #     crawl_comments(site='pgr', board='recommend', start_page=end_page + step + 1, end_page=end_page,
+    #                    time_sleep=5, file_dir='.')
 
+    start = 980
     step = -2
-    for end_page in range(1000, 1000 + step * 10, step):
+    iter = 40
+    for end_page in range(start, start + step * iter, step):
         crawl_comments(site='ilbe', board='ilbe', start_page=end_page + step + 1, end_page=end_page,
                        time_sleep=3, file_dir='/media/kikim/Data/data/chatcheck')
