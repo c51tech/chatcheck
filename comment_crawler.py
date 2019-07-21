@@ -7,6 +7,8 @@ import urllib.request as request
 from bs4 import BeautifulSoup
 from datetime import datetime
 
+from selenium import webdriver
+
 
 def get_article_no_list_pgr(board='recommend', page=1):
     return get_article_no_list(board, page,
@@ -14,10 +16,10 @@ def get_article_no_list_pgr(board='recommend', page=1):
                                pattern='&no=(\d+)')
 
 
-def get_article_no_list_ilbe(board='ilbe', page=1):
-    return get_article_no_list(board, page,
-                               board_url='http://www.ilbe.com/index.php?mid=%s&page=%d',
-                               pattern='http://www\.ilbe\.com/(\d+)')
+def get_article_no_list_dc(board='hit', page=1):
+    return get_article_no_list(board=board, page=page,
+                               board_url='https://gall.dcinside.com/board/lists/?id=%s&page=%d',
+                               pattern='&no=(\d+)&page')
 
 
 def get_article_no_list(page, board_url, pattern, board=None, encoding='utf-8'):
@@ -29,7 +31,13 @@ def get_article_no_list(page, board_url, pattern, board=None, encoding='utf-8'):
     attempts = 0
     while attempts < 3:
         try:
-            data = request.urlopen(url).read().decode(encoding, 'ignore')
+            req = request.Request(
+                url,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
+                }
+            )
+            data = request.urlopen(req).read().decode(encoding, 'ignore')
             break
         except Exception as e:
             print(e)
@@ -47,7 +55,7 @@ def get_article_no_list(page, board_url, pattern, board=None, encoding='utf-8'):
     return m
 
 
-def get_comments_pgr(article_no, board='recommend'):
+def get_comments_pgr(article_no, board='recommend', driver=None):
     url = 'http://www.pgr21.com/pb/pb.php?id=%s&no=%s' % (board, str(article_no))
 
     data = request.urlopen(url).read().decode('utf-8', 'ignore')
@@ -58,22 +66,18 @@ def get_comments_pgr(article_no, board='recommend'):
     return comments
 
 
-def get_comments_ilbe(article_no, board=None):
+def get_comments_dc(article_no, board='hit', driver=None):
+    if driver is None:
+        driver = webdriver.Chrome("./chromedriver")
 
-    comments = []
+    url = 'https://gall.dcinside.com/board/view/?id=%s&no=%s' % (board, str(article_no))
 
-    for page in range(1, 20):
-        url = 'http://www.ilbe.com/index.php?document_srl=%s&cpage=%d' % (str(article_no), page)
-
-        data = request.urlopen(url).read().decode('utf-8', 'ignore')
-        soup = BeautifulSoup(data, 'html5lib')
-        c_codes = soup.find_all('div', {"class": "replyContent"})
-
-        if len(comments) > 0 and comments[-1] == c_codes[-1].text.strip():
-            break
-
-        c_page = [c.text.strip() for c in c_codes]
-        comments += c_page
+    driver.get(url)
+    time.sleep(1)
+    data = driver.find_element_by_tag_name('body').get_attribute('innerHTML')
+    soup = BeautifulSoup(data, 'html5lib')
+    c_codes = soup.find_all('p', {"class": "usertxt"})
+    comments = [c.text.strip() for c in c_codes]
 
     return comments
 
@@ -83,9 +87,11 @@ def crawl_comments(site='pgr', board='recommend', start_page=1, end_page=100, fi
     if site == 'pgr':
         fn_article_no_list = get_article_no_list_pgr
         fn_comments = get_comments_pgr
-    elif site == 'ilbe':
-        fn_article_no_list = get_article_no_list_ilbe
-        fn_comments = get_comments_ilbe
+        driver = None
+    elif site == 'dc':
+        fn_article_no_list = get_article_no_list_dc
+        fn_comments = get_comments_dc
+        driver = webdriver.Chrome("./chromedriver")
     else:
         raise Exception('site "%s" is not supported' % site)
 
@@ -106,7 +112,7 @@ def crawl_comments(site='pgr', board='recommend', start_page=1, end_page=100, fi
                 break
 
             for a_no in article_no_list:
-                comments_article = fn_comments(a_no, board)
+                comments_article = fn_comments(a_no, board, driver=driver)
                 print('  article %s (count = %d)' % (a_no, len(comments_article)))
 
                 for c in comments_article:
@@ -130,5 +136,5 @@ if __name__ == "__main__":
     step = -2
     iter = 40
     for end_page in range(start, start + step * iter, step):
-        crawl_comments(site='ilbe', board='ilbe', start_page=end_page + step + 1, end_page=end_page,
+        crawl_comments(site='dc', board='hit', start_page=end_page + step + 1, end_page=end_page,
                        time_sleep=3, file_dir='/media/kikim/Data/data/chatcheck')

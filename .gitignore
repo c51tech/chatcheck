@@ -104,3 +104,4 @@ ENV/
 
 *.json
 *.h5
+/chromedriver

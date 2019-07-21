@@ -23,15 +23,15 @@ char2idx = comment_loader.get_char2idx(comment_loader.std_char_list)
 
 def load_data(count, dir_path='.'):
 
-    comments_pgr = comment_loader.load_comments(count=count//2, dir_path=dir_path, file_filter=r'.+pgr.+\.txt', count_per_file=count//16)
-    comments_ilbe = comment_loader.load_comments(count=count//2, dir_path=dir_path, file_filter=r'.+ilbe.+\.txt', count_per_file=count//16)
+    comments_formal = comment_loader.load_comments(count=count//2, dir_path=dir_path, file_filter=r'.+pgr.+\.txt', count_per_file=count//16)
+    comments_rude= comment_loader.load_comments(count=count//2, dir_path=dir_path, file_filter=r'.+dc.+\.txt', count_per_file=count//16)
 
-    comments = np.concatenate((comments_pgr, comments_ilbe), axis=0)
+    comments = np.concatenate((comments_formal, comments_rude), axis=0)
 
-    y_pgr = np.ones(comments_pgr.shape)
-    y_ilbe = np.zeros(comments_ilbe.shape)
+    y_formal = np.ones(comments_formal.shape)
+    y_rude= np.zeros(comments_rude.shape)
 
-    y = np.concatenate((y_pgr, y_ilbe))
+    y = np.concatenate((y_formal, y_rude))
 
     idx_shuffle = np.random.permutation(count)
 

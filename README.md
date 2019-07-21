@@ -9,7 +9,7 @@ Check your instant message contains any problems with RNN, especially wrong-chat
 ```bash
 $ conda create -n tf3 python=3 beautifulsoup4 html5lib numpy h5py
 $ source activate tf3
-(tf3)$ 
+
 ```
 ## 1.2 tensorflow, keras 설치
 [tfBinaryURL](https://www.tensorflow.org/install/install_linux#the_url_of_the_tensorflow_python_package)
@@ -18,3 +18,11 @@ $ source activate tf3
 (tf3)$ pip install --ignore-installed --upgrade tfBinaryURL
 (tf3)$ pip install keras
 ```
+
+## 1.3 Selenium 설치
+```
+$ source activate tf3
+(tf3)$ conda install -c conda-forge selenium
+```
+[Chrome Browser Driver Download](https://chromedriver.storage.googleapis.com/index.html?path=76.0.3809.68/)
+
